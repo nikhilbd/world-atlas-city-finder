@@ -11,6 +11,8 @@ const COUNTRY_DATA_SOURCE =
     fs.readFileSync(path.join(__dirname, 'country_data.js'), 'utf8');
 const COUNTRY_MODE_SOURCE =
     fs.readFileSync(path.join(__dirname, 'country_mode.js'), 'utf8');
+const GAME_EXTRAS_SOURCE =
+    fs.readFileSync(path.join(__dirname, 'game_extras.js'), 'utf8');
 const CountryModeModule = require('./country_mode.js');
 const CountryDataModule = require('./country_data.js');
 
@@ -128,10 +130,12 @@ function makeMockContext2D() {
 }
 
 /**
- * Instantiates index.html, country_data.js, and country_mode.js inside an
- * isolated Node vm context with deterministic PRNG and HTML-parsed DOM mocks.
+ * Instantiates index.html, country_data.js, country_mode.js, and game_extras.js
+ * inside an isolated Node vm context with deterministic PRNG and HTML-parsed
+ * DOM mocks.
  * @param {!Object=} options Optional overrides (seed, initialStorage,
- *     throwLocalStorageGetter, fetchImpl).
+ *     throwLocalStorageGetter, fetchImpl, viewportWidth, viewportHeight,
+ *     search, clipboardImpl, execCommandResult).
  * @return {!Object} Test harness exposing game state, DOM mocks, and helpers.
  */
 function createHarness(options = {}) {
@@ -144,6 +148,10 @@ function createHarness(options = {}) {
   const rafQueue = [];
 
   const mockCtx = makeMockContext2D();
+
+  const vw = options.viewportWidth || 1280;
+  const vh = options.viewportHeight || 720;
+  const copiedTexts = [];
 
   function makeElement(id, tagName = 'DIV', opts = {}) {
     const elListeners = new Map();
@@ -170,12 +178,12 @@ function createHarness(options = {}) {
       src: '',
       className: (opts.classes || []).join(' '),
       style: {},
-      clientWidth: 1280,
-      clientHeight: 720,
-      width: 1280,
-      height: 720,
+      clientWidth: vw,
+      clientHeight: vh,
+      width: vw,
+      height: vh,
       options: opts.options || [],
-      parentElement: {clientWidth: 1280, clientHeight: 720},
+      parentElement: {clientWidth: vw, clientHeight: vh},
       classList: makeClassList(opts.classes || []),
       attrs: {},
       setAttribute(k, v) {
@@ -194,8 +202,9 @@ function createHarness(options = {}) {
         children.push(child);
         return child;
       },
+      select() {},
       getBoundingClientRect() {
-        return {left: 0, top: 0, width: 1280, height: 720};
+        return {left: 0, top: 0, width: vw, height: vh};
       },
       setPointerCapture() {},
       releasePointerCapture() {},
@@ -260,6 +269,10 @@ function createHarness(options = {}) {
 
   const documentMock = {
     documentElement: {classList: makeClassList([])},
+    body: {
+      appendChild() {},
+      removeChild() {},
+    },
     activeElement: null,
     getElementById(id) {
       return elements.has(id) ? elements.get(id) : null;
@@ -270,6 +283,9 @@ function createHarness(options = {}) {
     createTextNode(text) {
       return {nodeType: 3, textContent: String(text)};
     },
+    execCommand(cmd) {
+      return cmd === 'copy' && Boolean(options.execCommandResult);
+    },
   };
 
   const storageImpl = {
@@ -278,8 +294,17 @@ function createHarness(options = {}) {
     removeItem: (k) => storage.delete(k),
   };
 
+  const searchStr = options.search || '';
   const windowMock = {
     devicePixelRatio: 1,
+    innerWidth: vw,
+    innerHeight: vh,
+    location: {
+      origin: 'https://nikhilbd.github.io',
+      pathname: '/world-atlas-city-finder/',
+      search: searchStr,
+      href: `https://nikhilbd.github.io/world-atlas-city-finder/${searchStr}`,
+    },
     addEventListener(ev, fn) {
       if (!listeners.has(ev)) listeners.set(ev, []);
       listeners.get(ev).push(fn);
@@ -305,6 +330,29 @@ function createHarness(options = {}) {
   const mathMock = Object.create(Math);
   mathMock.random = seededRand;
 
+  let navigatorMock;
+  if (options.clipboardImpl === null) {
+    navigatorMock = {};
+  } else if (typeof options.clipboardImpl === 'function') {
+    navigatorMock = {
+      clipboard: {
+        writeText(text) {
+          copiedTexts.push(String(text));
+          return options.clipboardImpl(String(text));
+        },
+      },
+    };
+  } else {
+    navigatorMock = {
+      clipboard: {
+        writeText(text) {
+          copiedTexts.push(String(text));
+          return Promise.resolve();
+        },
+      },
+    };
+  }
+
   const sandbox = {
     console,
     Math: mathMock,
@@ -318,6 +366,8 @@ function createHarness(options = {}) {
     JSON,
     RegExp,
     Error,
+    URL,
+    URLSearchParams,
     Infinity,
     NaN,
     parseInt,
@@ -326,6 +376,7 @@ function createHarness(options = {}) {
     decodeURIComponent,
     window: windowMock,
     document: documentMock,
+    navigator: navigatorMock,
     performance: {
       now: () => fakeNow,
     },
@@ -353,6 +404,8 @@ function createHarness(options = {}) {
   const scriptSrc = extractScript(HTML_SOURCE);
   vm.runInContext(COUNTRY_DATA_SOURCE, vmCtx, {filename: 'country_data.js'});
   vm.runInContext(COUNTRY_MODE_SOURCE, vmCtx, {filename: 'country_mode.js'});
+  vm.runInContext(GAME_EXTRAS_SOURCE, vmCtx, {filename: 'game_extras.js'});
+  sandbox.GameExtras = windowMock.GameExtras;
   sandbox.COUNTRY_META_BY_NAME = windowMock.COUNTRY_META_BY_NAME;
   sandbox.CountryMode = windowMock.CountryMode;
 
@@ -388,20 +441,120 @@ function createHarness(options = {}) {
     }
   }
 
-  function clickScreen(sx, sy) {
+  function clickScreen(sx, sy, pointerType = 'mouse') {
     const canvas = elements.get('map-canvas');
     canvas.dispatch(
-        'pointerdown', {button: 0, clientX: sx, clientY: sy, pointerId: 1});
+        'pointerdown',
+        {button: 0, clientX: sx, clientY: sy, pointerId: 1, pointerType});
     canvas.dispatch(
-        'pointermove', {button: 0, clientX: sx, clientY: sy, pointerId: 1});
+        'pointermove',
+        {button: 0, clientX: sx, clientY: sy, pointerId: 1, pointerType});
     canvas.dispatch(
-        'pointerup', {button: 0, clientX: sx, clientY: sy, pointerId: 1});
+        'pointerup',
+        {button: 0, clientX: sx, clientY: sy, pointerId: 1, pointerType});
+  }
+
+  function touchTapScreen(sx, sy) {
+    clickScreen(sx, sy, 'touch');
+  }
+
+  function pinchZoom(p1Start, p2Start, p1End, p2End) {
+    const canvas = elements.get('map-canvas');
+    canvas.dispatch('pointerdown', {
+      button: 0,
+      clientX: p1Start[0],
+      clientY: p1Start[1],
+      pointerId: 11,
+      pointerType: 'touch',
+    });
+    canvas.dispatch('pointerdown', {
+      button: 0,
+      clientX: p2Start[0],
+      clientY: p2Start[1],
+      pointerId: 12,
+      pointerType: 'touch',
+    });
+    canvas.dispatch('pointermove', {
+      button: 0,
+      clientX: p1End[0],
+      clientY: p1End[1],
+      pointerId: 11,
+      pointerType: 'touch',
+    });
+    canvas.dispatch('pointermove', {
+      button: 0,
+      clientX: p2End[0],
+      clientY: p2End[1],
+      pointerId: 12,
+      pointerType: 'touch',
+    });
+    canvas.dispatch('pointerup', {
+      button: 0,
+      clientX: p1End[0],
+      clientY: p1End[1],
+      pointerId: 11,
+      pointerType: 'touch',
+    });
+    canvas.dispatch('pointerup', {
+      button: 0,
+      clientX: p2End[0],
+      clientY: p2End[1],
+      pointerId: 12,
+      pointerType: 'touch',
+    });
   }
 
   function hoverScreen(sx, sy) {
     const canvas = elements.get('map-canvas');
+    canvas.dispatch('pointermove', {
+      button: 0,
+      clientX: sx,
+      clientY: sy,
+      pointerId: 1,
+      pointerType: 'mouse'
+    });
+  }
+
+  function dragScreen(
+      sx1, sy1, sx2, sy2, pointerType = 'touch', pointerId = 1) {
+    const canvas = elements.get('map-canvas');
     canvas.dispatch(
-        'pointermove', {button: 0, clientX: sx, clientY: sy, pointerId: 1});
+        'pointerdown',
+        {button: 0, clientX: sx1, clientY: sy1, pointerId, pointerType});
+    canvas.dispatch(
+        'pointermove',
+        {button: 0, clientX: sx2, clientY: sy2, pointerId, pointerType});
+    canvas.dispatch(
+        'pointerup',
+        {button: 0, clientX: sx2, clientY: sy2, pointerId, pointerType});
+  }
+
+  function rightClickScreen(sx, sy) {
+    const canvas = elements.get('map-canvas');
+    canvas.dispatch('pointerdown', {
+      button: 2,
+      clientX: sx,
+      clientY: sy,
+      pointerId: 1,
+      pointerType: 'mouse',
+    });
+    canvas.dispatch('pointerup', {
+      button: 2,
+      clientX: sx,
+      clientY: sy,
+      pointerId: 1,
+      pointerType: 'mouse',
+    });
+  }
+
+  function cancelPointer(sx, sy, pointerId = 1, pointerType = 'touch') {
+    const canvas = elements.get('map-canvas');
+    canvas.dispatch(
+        'pointerdown',
+        {button: 0, clientX: sx, clientY: sy, pointerId, pointerType});
+    canvas.dispatch(
+        'pointercancel',
+        {button: 0, clientX: sx, clientY: sy, pointerId, pointerType});
   }
 
   return {
@@ -410,13 +563,19 @@ function createHarness(options = {}) {
     document: documentMock,
     elements,
     storage,
+    copiedTexts,
     mockCtx,
     getState: () => windowMock.__GAME_DEBUG__.getState(),
     internals: windowMock.__TEST_INTERNALS__,
     stepFrame,
     flushTimers,
     clickScreen,
+    touchTapScreen,
+    pinchZoom,
     hoverScreen,
+    dragScreen,
+    rightClickScreen,
+    cancelPointer,
   };
 }
 
@@ -1089,15 +1248,22 @@ const TESTS = [
   testSmallIslandForgivenessAndStaleWikiGuard,
 ];
 
-(async () => {
-  let passed = 0;
-  for (const fn of TESTS) {
-    await fn();
-    passed++;
-    console.log(`PASS: ${fn.name}`);
-  }
-  console.log(`\nAll ${passed}/${TESTS.length} tests passed.`);
-})().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+module.exports = {
+  createHarness,
+  HTML_SOURCE,
+};
+
+if (require.main === module) {
+  (async () => {
+    let passed = 0;
+    for (const fn of TESTS) {
+      await fn();
+      passed++;
+      console.log(`PASS: ${fn.name}`);
+    }
+    console.log(`\nAll ${passed}/${TESTS.length} tests passed.`);
+  })().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

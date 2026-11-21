@@ -1,0 +1,309 @@
+/* Responsive Hybrid Mobile Layout & Local Hall of Fame Leaderboard styles. */
+html,
+body {
+  height: 100dvh;
+}
+
+@media (min-width: 769px) {
+  .mobile-only,
+  .mobile-drawer-backdrop {
+    display: none !important;
+  }
+}
+
+.challenge-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 9999px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.summary-save-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--background, #0f172a);
+  border: 1px solid var(--border, #334155);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.lb-name-input {
+  flex: 1;
+  min-width: 140px;
+  background: var(--card, #1e293b);
+  color: var(--foreground, #f8fafc);
+  border: 1px solid var(--border, #334155);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.summary-save-status {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.share-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.lb-tabs-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lb-tab-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lb-mini-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: var(--accent, #334155);
+  color: var(--foreground, #f8fafc);
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.lb-badge-riddle {
+  background: rgba(99, 102, 241, 0.22);
+  color: #818cf8;
+}
+
+.lb-row-highlight {
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.lb-replay-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 34;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.mobile-bottom-dock {
+  background: var(--card, #1e293b);
+  border-top: 1px solid var(--border, #334155);
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) 8px;
+  flex-shrink: 0;
+  z-index: 22;
+  gap: 6px;
+}
+
+.mobile-region-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-region-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-region-pill {
+  flex: 1 0 auto;
+  background: var(--background, #0f172a);
+  color: var(--foreground, #f8fafc);
+  border: 1px solid var(--border, #334155);
+  border-radius: 9999px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: center;
+  min-height: 34px;
+}
+
+.mobile-action-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mobile-action-btn {
+  flex: 1 1 0%;
+  min-height: 44px;
+  justify-content: center;
+  font-size: 12.5px;
+  padding: 6px 8px;
+}
+
+.mobile-mini-stats {
+  background: var(--background, #0f172a);
+  border: 1px solid var(--border, #334155);
+  border-radius: 7px;
+  padding: 5px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  #mobile-mini-stats,
+  #btn-mobile-menu,
+  #btn-crosshair-mode {
+    display: inline-flex;
+  }
+
+  .mobile-bottom-dock {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hud-header {
+    padding: 6px 8px;
+    gap: 6px;
+    flex-wrap: nowrap;
+    /* Avoid creating a flex stacking context that traps fixed drawer/backdrop below the bottom dock. */
+    z-index: auto;
+  }
+
+  .hud-left {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  #select-target-type,
+  #challenge-badge,
+  .hud-actions,
+  .region-bar,
+  .zoom-bar,
+  .status-bar {
+    display: none !important;
+  }
+
+  .target-badge {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .target-badge:not(.detective-mode) .target-badge-label {
+    display: none;
+  }
+
+  .target-badge-city {
+    font-size: 15.5px;
+  }
+
+  .modal-backdrop {
+    padding: 10px;
+  }
+
+  .modal-card {
+    max-height: 100%;
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .clue-pill {
+    position: fixed;
+    top: 52px;
+    left: 8px;
+    right: 8px;
+    max-width: none;
+    white-space: normal;
+    z-index: 23;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  .hud-right {
+    display: none;
+  }
+
+  .hud-right.mobile-drawer-open {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(315px, 86vw);
+    background: var(--card, #1e293b);
+    border-left: 1px solid var(--border, #334155);
+    padding: 14px 14px calc(18px + env(safe-area-inset-bottom, 0px)) 14px;
+    gap: 9px;
+    z-index: 40;
+    overflow-y: auto;
+    box-shadow: -12px 0 32px rgba(0, 0, 0, 0.48);
+  }
+
+  .hud-right.mobile-drawer-open .hud-btn,
+  .hud-right.mobile-drawer-open .hud-select {
+    min-height: 40px;
+    width: 100%;
+    justify-content: flex-start;
+    font-size: 13px;
+  }
+
+  .hud-right.mobile-drawer-open .stats-bar {
+    justify-content: space-between;
+    padding: 8px 10px;
+  }
+
+  .mobile-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border, #334155);
+  }
+
+  .city-postcard {
+    top: auto;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 58dvh;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .feedback-inner {
+    white-space: normal;
+    text-align: center;
+    border-radius: 12px;
+    font-size: 12px;
+    padding: 7px 12px;
+  }
+}

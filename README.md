@@ -62,14 +62,27 @@ historical significance.
     -   Tracks discovered cities and discovered countries independently in
         `localStorage` across sessions and plots the connected 10-stop geodesic
         flight path at the end of each expedition.
+8.  **Hybrid Mobile Gameplay (`<= 768px`)**:
+    -   Collapses the HUD into a compact single-row header with a slide-over
+        `⚙️` settings drawer (`100dvh`) and a thumb-zone bottom dock featuring
+        1-tap continent jump pills.
+    -   Supports native two-finger **pinch-to-zoom**, **Smart Auto-Zoom** on
+        ambiguous zoomed-out touch taps (eliminating fat-finger wrong guesses),
+        and an optional **Crosshair Pin-Drop** reticle mode (`🎯 Pin`).
+9.  **Optional Local Hall of Fame & Seeded Challenge Links**:
+    -   Optionally save completed `10-Round Expedition` and `60s Blitz` runs to
+        a local leaderboard (`localStorage`, top 25 per mode/game bucket), copy
+        a Wordle-style result card, or share a `?seed=...` Challenge Link so
+        friends play the exact same target sequence.
 
 --------------------------------------------------------------------------------
 
 ## Running Locally & Testing
 
 The game has zero external build steps or library dependencies (`index.html`
-loads sibling modules `country_data.js` and `country_mode.js`). Open
-`index.html` directly in any browser or serve the directory over HTTP:
+loads sibling assets `extras.css`, `country_data.js`, `country_mode.js`, and
+`game_extras.js`). Open `index.html` directly in any browser or serve the
+directory over HTTP:
 
 ```bash
 python3 -m http.server 8765
@@ -78,5 +91,5 @@ python3 -m http.server 8765
 Run the automated unit test suite with Node.js:
 
 ```bash
-node test_game.js
+node test_game.js && node test_game_extras.js
 ```
